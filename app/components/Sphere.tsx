@@ -1,77 +1,72 @@
 "use client";
 
-import React, { JSX, useRef } from "react";
-import { useGLTF } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import { useAIStore } from '@/app/store/useAIStore';
 import * as THREE from "three";
+import React, { useRef } from "react";
+import { useFrame, ThreeElements } from "@react-three/fiber";
 
-// ✅ FIXED: Simplified GLTF type without GLTFAction
+import { useGLTF } from "@react-three/drei";
+import { useAIStore } from "@/app/store/useAIStore";
+
 type GLTFResult = {
   nodes: {
     Sphere: THREE.Mesh;
   };
-  materials: {
-    DefaultMaterial: THREE.MeshStandardMaterial;
-  };
 };
 
-// ✅ FIXED: Proper type definition with volume prop
-type ModelProps = JSX.IntrinsicElements["group"] & {
+type ModelProps = ThreeElements['group'] & {
   volume?: number;
 }
 
 export function Model({ volume = 0, ...props }: ModelProps) {
-  const { nodes } = useGLTF("/glb/sphere.glb")  as unknown as GLTFResult;
-  // ... rest of the code stays the same
+  const { nodes } = useGLTF("/glb/sphere.glb") as any as GLTFResult;
+
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
-  
+
   const { status, currentResponse } = useAIStore();
 
   useFrame((state) => {
-    if (meshRef.current) {
-      const baseScale = 0.8;
-      let targetScale = baseScale + (volume * 0.3);
+    if (!meshRef.current) return;
 
-      // AI Status effects
-      if (status === 'processing') {
-        // Gentle pulsing while thinking
-        targetScale = baseScale + Math.sin(state.clock.elapsedTime * 3) * 0.1;
-      } else if (status === 'responding') {
-        // Excited expansion
-        targetScale = baseScale * 1.2;
-      } else if (status === 'speaking') {
-        // Speaking animation
-        targetScale = baseScale * 1.1 + Math.sin(state.clock.elapsedTime * 5) * 0.1;
-      }
+    const baseScale = 0.8;
+    let targetScale = baseScale + volume * 0.3;
 
-      meshRef.current.scale.lerp(
-        new THREE.Vector3(targetScale, targetScale, targetScale),
-        0.2
-      );
+    if (status === "processing") {
+      targetScale = baseScale + Math.sin(state.clock.elapsedTime * 3) * 0.1;
+    } else if (status === "responding") {
+      targetScale = baseScale * 1.2;
+    } else if (status === "speaking") {
+      targetScale =
+        baseScale * 1.1 +
+        Math.sin(state.clock.elapsedTime * 5) * 0.1;
     }
 
-    // Color based on AI emotion
+    meshRef.current.scale.lerp(
+      new THREE.Vector3(targetScale, targetScale, targetScale),
+      0.2
+    );
+
     if (materialRef.current && currentResponse) {
-      const emotionColors = {
+      const colors: Record<string, THREE.Color> = {
         calm: new THREE.Color(0xffffff),
         excited: new THREE.Color(0x10b981),
         thinking: new THREE.Color(0x3b82f6),
         error: new THREE.Color(0xff0000),
       };
 
-      const targetColor = emotionColors[currentResponse.emotion || 'calm'];
-      materialRef.current.color.lerp(targetColor, 0.1);
+      materialRef.current.color.lerp(
+        colors[currentResponse.emotion ?? "calm"],
+        0.1
+      );
     }
   });
 
   return (
-    <group {...props} dispose={null}>
+    <group {...props}>
       <mesh ref={meshRef} geometry={nodes.Sphere.geometry}>
-        <meshStandardMaterial 
+        <meshStandardMaterial
           ref={materialRef}
-          roughness={0.7} 
+          roughness={0.7}
           metalness={0.8}
         />
       </mesh>
