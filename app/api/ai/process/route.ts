@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
@@ -396,7 +396,7 @@ export async function POST(request: NextRequest) {
     // Generate AI response
     const usedTools: string[] = [];
     
-    const messages: any[] = [
+    const messages: Array<OpenAI.Chat.Completions.ChatCompletionMessageParam> = [
       {
         role: 'system',
         content: `You are Nova, an advanced AI voice assistant with perfect memory stored in a database.
@@ -454,13 +454,14 @@ Respond in JSON: {"intent":"respond","message":"your response","emotion":"calm"}
 
     // Handle tool calls
     if (firstMessage.tool_calls && firstMessage.tool_calls.length > 0) {
-      console.log('🛠️ Tools:', firstMessage.tool_calls.map(t => t.function.name).join(', '));
+      console.log('🛠️ Tools:', firstMessage.tool_calls.map((t: any) => t.function.name).join(', '));
+
 
       messages.push(firstMessage);
 
       for (const toolCall of firstMessage.tool_calls) {
-        const functionName = toolCall.function.name;
-        const functionArgs = JSON.parse(toolCall.function.arguments || '{}');
+        const functionName = (toolCall as any).function.name;
+  const functionArgs = JSON.parse((toolCall as any).function.arguments || '{}');
         
         usedTools.push(functionName);
         

@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -59,11 +59,11 @@ class AudioProcessor {
 
     source.connect(this.gainNode).connect(this.analyser);
 
-    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount) as Uint8Array;
+    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount) as unknown as Uint8Array;
   }
 
   getVolume(): number {
-    this.analyser.getByteFrequencyData(this.dataArray);
+    this.analyser.getByteFrequencyData(this.dataArray as any);
     
     let sum = 0;
     for (let i = 0; i < this.dataArray.length; i++) {
@@ -385,22 +385,22 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
   };
 
   const pulseVariants = {
-    idle: { scale: 1 },
-    recording: { 
-      scale: [1, 1.1, 1],
-      transition: {
-        repeat: Infinity,
-        duration: 1.5,
-      }
+  idle: { scale: 1 },
+  recording: { 
+    scale: [1, 1.1, 1] as number[],
+    transition: {
+      repeat: Infinity,
+      duration: 1.5,
     }
-  };
+  }
+};
 
   return (
     <div className="fixed left-8 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-6">
       
       {/* FIRST BUTTON: Enable/Disable Microphone - Slides in from left */}
       <motion.button
-        variants={firstButtonVariants}
+        variants={firstButtonVariants  as any}
         initial="hidden"
         animate="visible"
         onClick={isMicrophoneEnabled ? stopListening : startListening}
@@ -466,7 +466,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
       <AnimatePresence mode="wait">
         {isMicrophoneEnabled && (
           <motion.button
-            variants={secondButtonVariants}
+            variants={secondButtonVariants as any}
             initial="hidden"
             animate="visible"
             exit="exit"
