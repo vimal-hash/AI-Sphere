@@ -22,7 +22,7 @@ type ModelProps = JSX.IntrinsicElements["group"] & {
 }
 
 export function Model({ volume = 0, ...props }: ModelProps) {
-  const { nodes } = useGLTF("/glb/sphere.glb") as GLTFResult;
+  const { nodes } = useGLTF("/glb/sphere.glb") as unknown as GLTFResult;
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
   
