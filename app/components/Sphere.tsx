@@ -5,9 +5,9 @@ import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useAIStore } from '@/app/store/useAIStore';
 import * as THREE from "three";
-import { GLTF } from "three-stdlib";
 
-type GLTFResult = GLTF & {
+// ✅ FIXED: Simplified GLTF type without GLTFAction
+type GLTFResult = {
   nodes: {
     Sphere: THREE.Mesh;
   };
@@ -22,7 +22,8 @@ type ModelProps = JSX.IntrinsicElements["group"] & {
 }
 
 export function Model({ volume = 0, ...props }: ModelProps) {
-  const { nodes } = useGLTF("/glb/sphere.glb") as unknown as GLTFResult;
+  const { nodes } = useGLTF("/glb/sphere.glb")  as unknown as GLTFResult;
+  // ... rest of the code stays the same
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial>(null);
   
