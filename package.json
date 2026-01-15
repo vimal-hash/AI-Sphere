@@ -1,17 +1,32 @@
 {
-  "name": "sphere",
-  "version": "0.1.0",
+  "name": "sphere-ai-voice",
+  "version": "2.0.0",
   "private": true,
+  "description": "Production-ready AI voice assistant with GPT-4, TTS, and real-time features",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/supabase-js": "^2.89.0",
+    "@types/three": "^0.182.0",
+    "framer-motion": "^12.26.2",
+    "lottie-web": "^5.13.0",
     "next": "16.1.1",
+    "openai": "^6.16.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "three": "^0.182.0",
+    "three-stdlib": "^2.36.1",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -22,5 +37,9 @@
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
