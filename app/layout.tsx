@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Voice Spheree AI",
+  title: "Voice Sphere AI",
   description: "Real-time AI voice assistant",
 };
 
