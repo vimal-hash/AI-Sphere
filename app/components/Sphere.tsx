@@ -29,7 +29,7 @@ export function Model({ volume = 0, ...props }: ModelProps) {
     if (!meshRef.current) return;
 
     const baseScale = 0.8;
-    let targetScale = baseScale + volume * 0.3;
+    let targetScale = baseScale + volume * 0.4;
 
     if (status === "processing") {
       targetScale = baseScale + Math.sin(state.clock.elapsedTime * 3) * 0.1;
