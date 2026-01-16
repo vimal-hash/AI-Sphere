@@ -3,10 +3,7 @@ import { supabase } from '@/app/lib/supabase';
 import { useAuthStore } from './useAuthStore';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
-// ============================================================================
-// BULLETPROOF PRESENCE - NEVER DISCONNECTS ON TAB SWITCH
-// Uses aggressive keepalive and ignores visibility changes completely
-// ============================================================================
+
 
 export type ConnectionState = 'connected' | 'reconnecting' | 'offline';
 
@@ -30,20 +27,53 @@ interface PresenceState {
   getOnlineCount: () => number;
 }
 
-// ============================================================================
-// GLOBAL STATE (outside React)
-// ============================================================================
+
 
 let globalChannel: RealtimeChannel | null = null;
 let isConnecting = false;
 let reconnectTimer: NodeJS.Timeout | null = null;
 let heartbeatTimer: NodeJS.Timeout | null = null;
+let keepAliveTimer: NodeJS.Timeout | null = null;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 50; // Very high - we want to keep trying
+const MAX_RECONNECT_ATTEMPTS = 100; 
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
+
+
+if (typeof window !== 'undefined') {
+  
+  let actualHidden = document.hidden;
+  
+  
+  Object.defineProperty(document, 'hidden', {
+    configurable: true,
+    get: function() {
+     
+      const stack = new Error().stack || '';
+      const isRealtimeCall = stack.includes('phoenix') || 
+                             stack.includes('realtime') || 
+                             stack.includes('supabase');
+      
+      if (isRealtimeCall) {
+        
+        return false;
+      }
+      
+     
+      return actualHidden;
+    }
+  });
+
+  
+  const originalVisibilityHandler = () => {
+    actualHidden = document.visibilityState === 'hidden';
+  };
+  
+  document.addEventListener('visibilitychange', originalVisibilityHandler);
+  
+
+}
+
+
 
 function clearTimers() {
   if (reconnectTimer) {
@@ -54,17 +84,19 @@ function clearTimers() {
     clearInterval(heartbeatTimer);
     heartbeatTimer = null;
   }
+  if (keepAliveTimer) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
 }
 
 function getReconnectDelay(): number {
-  // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
+ 
   const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-  return delay + Math.random() * 1000; // Add jitter
+  return delay + Math.random() * 1000; 
 }
 
-// ============================================================================
-// STORE
-// ============================================================================
+
 
 export const usePresenceStore = create<PresenceState>((set, get) => ({
   connectionState: 'offline',
@@ -73,16 +105,16 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
   channel: null,
 
   connect: async () => {
-    // Prevent multiple simultaneous connections
+  
     if (isConnecting) {
-      console.log('⏳ Already connecting, skipping...');
+    
       return;
     }
 
     const { user } = useAuthStore.getState();
     
     if (!user) {
-      console.log('❌ No user, cannot connect');
+     
       return;
     }
 
@@ -91,9 +123,9 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
     clearTimers();
 
     try {
-      console.log('🔌 Connecting to presence...');
+      
 
-      // Clean up old channel
+      
       if (globalChannel) {
         try {
           await globalChannel.untrack();
@@ -104,7 +136,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
         }
       }
 
-      // Create new channel
+      
       const channel = supabase.channel('voice-room', {
         config: {
           presence: { 
@@ -112,7 +144,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
           },
           broadcast: { 
             self: false,
-            ack: false, // Don't wait for acknowledgment
+            ack: false, 
           },
         },
       });
@@ -129,7 +161,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
         online: true,
       };
 
-      // Handle presence sync
+    
       channel.on('presence', { event: 'sync' }, () => {
         const presenceState = channel.presenceState();
         const users: PresenceUser[] = [];
@@ -157,9 +189,9 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
         set({ onlineUsers: uniqueUsers });
       });
 
-      // Subscribe with retry logic
+      
       channel.subscribe(async (status) => {
-        console.log('📡 Channel status:', status);
+        
 
         if (status === 'SUBSCRIBED') {
           await channel.track(presenceData);
@@ -173,9 +205,11 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
           isConnecting = false;
           reconnectAttempts = 0;
           
-          console.log('✅ Connected successfully!');
+         
 
-          // Start aggressive heartbeat (every 10 seconds)
+         
+          
+        
           heartbeatTimer = setInterval(async () => {
             if (globalChannel && globalChannel.state === 'joined') {
               try {
@@ -183,24 +217,64 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
                   ...presenceData,
                   lastSeen: new Date().toISOString(),
                 });
-                console.log('💓 Heartbeat sent');
+              
               } catch (e) {
                 console.warn('Heartbeat failed:', e);
               }
             }
           }, 10000);
           
+          
+          keepAliveTimer = setInterval(() => {
+            try {
+             
+              const conn = (channel as any).socket?.conn;
+              if (conn && conn.readyState === 1) { 
+                conn.send(JSON.stringify({
+                  topic: 'phoenix',
+                  event: 'heartbeat',
+                  payload: {},
+                  ref: Date.now().toString()
+                }));
+               
+              }
+            } catch (e) {
+              console.warn('WebSocket ping failed:', e);
+            }
+          }, 15000);
+          
+          
+          const stateMonitor = setInterval(() => {
+            if (globalChannel) {
+              const state = globalChannel.state;
+              
+              if (state === 'closed' || state === 'errored') {
+                console.warn('⚠️ Channel in bad state:', state);
+                clearInterval(stateMonitor);
+                
+                // Auto-reconnect
+                if (navigator.onLine) {
+                 
+                  setTimeout(() => {
+                    set({ connectionState: 'offline' });
+                    get().connect();
+                  }, 1000);
+                }
+              }
+            }
+          }, 5000);
+          
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           isConnecting = false;
           set({ connectionState: 'offline' });
           
-          console.warn(`⚠️ Connection ${status}`);
+          // console.warn(`⚠️ Connection ${status}`);
           
-          // Auto-reconnect if online
+         
           if (navigator.onLine && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
             const delay = getReconnectDelay();
-            console.log(`🔄 Reconnecting in ${(delay / 1000).toFixed(1)}s (attempt ${reconnectAttempts})`);
+            
             
             reconnectTimer = setTimeout(() => {
               get().connect();
@@ -214,7 +288,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
       isConnecting = false;
       set({ connectionState: 'offline' });
       
-      // Retry on error
+   
       if (navigator.onLine && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttempts++;
         const delay = getReconnectDelay();
@@ -226,7 +300,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
   },
 
   disconnect: () => {
-    console.log('👋 Disconnecting...');
+   
     
     isConnecting = false;
     clearTimers();
@@ -252,19 +326,15 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
   getOnlineCount: () => get().onlineUsers.length,
 }));
 
-// ============================================================================
-// BROWSER EVENT HANDLERS (outside React to prevent re-renders)
-// ============================================================================
+
 
 if (typeof window !== 'undefined') {
   
-  // ========================================================================
-  // NETWORK ONLINE/OFFLINE
-  // ========================================================================
+ 
   
   window.addEventListener('online', () => {
-    console.log('🌐 Network back online');
-    reconnectAttempts = 0; // Reset attempts
+    
+    reconnectAttempts = 0; 
     const store = usePresenceStore.getState();
     if (store.connectionState !== 'connected') {
       setTimeout(() => store.connect(), 500);
@@ -272,58 +342,44 @@ if (typeof window !== 'undefined') {
   });
 
   window.addEventListener('offline', () => {
-    console.log('🌐 Network offline');
+   
     usePresenceStore.setState({ connectionState: 'offline' });
   });
 
-  // ========================================================================
-  // PAGE VISIBILITY - DO NOTHING! THIS IS THE FIX!
-  // We keep the connection alive regardless of tab visibility
-  // ========================================================================
+ 
   
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      console.log('👁️ Tab hidden - keeping connection alive');
-      // DO NOTHING - this is intentional!
-      // The heartbeat will keep the connection alive
+      
     } else {
-      console.log('👁️ Tab visible again');
-      // Just verify connection is still alive
+     
       const store = usePresenceStore.getState();
       if (store.connectionState === 'offline') {
-        console.log('🔄 Connection lost while hidden, reconnecting...');
+        
         store.connect();
       }
     }
   });
 
-  // ========================================================================
-  // BEFORE UNLOAD - Only disconnect when page is actually closing
-  // ========================================================================
+
   
   window.addEventListener('beforeunload', () => {
-    console.log('👋 Page closing, disconnecting...');
+    
     const store = usePresenceStore.getState();
     store.disconnect();
   });
 
-  // ========================================================================
-  // FOCUS/BLUR - Additional check
-  // ========================================================================
+
   
   window.addEventListener('focus', () => {
-    console.log('🎯 Window focused');
+   
     const store = usePresenceStore.getState();
-    // Only reconnect if we're actually disconnected
+    
     if (store.connectionState === 'offline' && navigator.onLine) {
-      console.log('🔄 Reconnecting on focus...');
+      
       store.connect();
     }
   });
 
-  // Don't disconnect on blur!
-  window.addEventListener('blur', () => {
-    console.log('🎯 Window blurred - staying connected');
-    // DO NOTHING - keep connection alive
-  });
+  
 }

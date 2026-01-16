@@ -6,10 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAIStore } from '@/app/store/useAIStore';
 import { useAuthStore } from '@/app/store/useAuthStore';
 
-// ============================================================================
-// FIXED: First button slides in from left, stays in place when clicked
-// Second button fades in below (no slide animation)
-// ============================================================================
+
 
 interface MicrophoneManagerProps {
   onVolumeChange: (volume: number) => void;
@@ -115,13 +112,13 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
     try {
       setError(null);
       
-      console.log('🎤 Requesting microphone access...');
+    
       
       const audioStream = await navigator.mediaDevices.getUserMedia({
         audio: AUDIO_CONFIG
       });
 
-      console.log('✅ Microphone access granted');
+      
 
       setStream(audioStream);
       setIsMicrophoneEnabled(true);
@@ -159,7 +156,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
   const stopRecording = useCallback(() => {
     if (!isRecording || !mediaRecorderRef.current) return;
 
-    console.log('⏹️ Recording stopped');
+
 
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
@@ -176,7 +173,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
 
   const startSilenceDetection = useCallback(() => {
     if (!ENABLE_AUTO_STOP) {
-      console.log('ℹ️ Auto-stop disabled');
+      
       return;
     }
 
@@ -224,7 +221,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
       return;
     }
 
-    console.log('🔴 Recording started');
+  
     
     setIsRecording(true);
     setRecordingDuration(0);
@@ -265,7 +262,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
         return;
       }
 
-      console.log('💾 Audio recorded:', audioBlob.size, 'bytes');
+     
       
       if (!session?.access_token) {
         console.error('❌ No auth token');
@@ -296,7 +293,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
     startSilenceDetection();
 
     maxDurationTimerRef.current = setTimeout(() => {
-      console.log('⏱️ Max duration reached');
+      
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
         mediaRecorderRef.current.stop();
         setIsRecording(false);
@@ -315,7 +312,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
   }, [isRecording, stopRecording, startRecording]);
 
   const stopListening = useCallback(() => {
-    console.log('🛑 Stopping microphone');
+  
 
     if (isRecording) {
       stopRecording();
@@ -347,15 +344,13 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
     }
   }, [status, isRecording, stopRecording]);
 
-  // ============================================================================
-  // ANIMATION VARIANTS - FIXED
-  // ============================================================================
+
   
-  // First button: Slides in from LEFT on page load
+  
   const firstButtonVariants = {
-    hidden: { x: -100, opacity: 0 },  // Start off-screen left
+    hidden: { x: -100, opacity: 0 }, 
     visible: { 
-      x: 0,                           // End at normal position
+      x: 0,                          
       opacity: 1,
       transition: {
         type: "spring",
@@ -365,9 +360,9 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
     }
   };
 
-  // Second button: Just fades in (NO slide) when mic is enabled
+  
   const secondButtonVariants = {
-    hidden: { opacity: 0, scale: 0.9 },  // Start invisible, slightly small
+    hidden: { opacity: 0, scale: 0.9 },  
     visible: { 
       opacity: 1,
       scale: 1,
@@ -398,7 +393,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
   return (
     <div className="fixed left-8 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-6">
       
-      {/* FIRST BUTTON: Enable/Disable Microphone - Slides in from left */}
+     
       <motion.button
         variants={firstButtonVariants  as any}
         initial="hidden"
@@ -462,7 +457,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
         </div>
       </motion.button>
 
-      {/* SECOND BUTTON: Recording Toggle - Fades in (NO slide) */}
+      
       <AnimatePresence mode="wait">
         {isMicrophoneEnabled && (
           <motion.button
@@ -541,7 +536,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
         )}
       </AnimatePresence>
 
-      {/* Error Message */}
+     
       <AnimatePresence>
         {error && (
           <motion.div
@@ -556,7 +551,7 @@ export default function MicrophoneManager({ onVolumeChange }: MicrophoneManagerP
         )}
       </AnimatePresence>
 
-      {/* Status Indicator */}
+      
       <AnimatePresence>
         {status !== 'idle' && (
           <motion.div

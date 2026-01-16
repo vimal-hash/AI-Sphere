@@ -1,17 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-// ============================================================================
-// MEMORY SERVICE - Production Memory Management
-// ============================================================================
+
 
 const supabase = createClient(
   'https://uyzlaiqfmufmcpdupoou.supabase.co',
   'sb_publishable_fvtnsRZqURB9L13Hz884YA_D5de6xur'
 );
 
-// ============================================================================
-// TYPES
-// ============================================================================
+
 
 export interface ConversationTurn {
   role: 'user' | 'assistant';
@@ -62,14 +58,10 @@ export interface ContextPack {
   user: UserMemory | null;
 }
 
-// ============================================================================
-// 1. SESSION MEMORY OPERATIONS
-// ============================================================================
+
 
 export class SessionMemoryService {
-  /**
-   * Get or create session for user
-   */
+  
   static async getSession(userId: string, sessionId: string): Promise<SessionMemory | null> {
     try {
       const { data, error } = await supabase
@@ -100,9 +92,7 @@ export class SessionMemoryService {
     }
   }
 
-  /**
-   * Add turn to session (keep last 5 turns)
-   */
+  
   static async addTurn(
     userId: string,
     sessionId: string,
@@ -116,7 +106,7 @@ export class SessionMemoryService {
       const turns = session?.turns || [];
       turns.push(turn);
       
-      // Keep only last 5 turns
+      
       const recentTurns = turns.slice(-5);
 
       const sessionData = {
@@ -143,9 +133,7 @@ export class SessionMemoryService {
     }
   }
 
-  /**
-   * Update unresolved references (pronouns like "it", "that")
-   */
+  
   static async updateReferences(
     userId: string,
     sessionId: string,
@@ -169,9 +157,7 @@ export class SessionMemoryService {
     }
   }
 
-  /**
-   * Clear expired sessions (called by cron or manually)
-   */
+  
   static async cleanupExpired(): Promise<void> {
     try {
       const { error } = await supabase
@@ -182,7 +168,7 @@ export class SessionMemoryService {
       if (error) {
         console.error('❌ Cleanup error:', error);
       } else {
-        console.log('✅ Expired sessions cleaned');
+       
       }
     } catch (error) {
       console.error('❌ Cleanup service error:', error);
@@ -190,14 +176,10 @@ export class SessionMemoryService {
   }
 }
 
-// ============================================================================
-// 2. INTENT MEMORY OPERATIONS
-// ============================================================================
+
 
 export class IntentMemoryService {
-  /**
-   * Get user's current active intent
-   */
+  
   static async getCurrentIntent(userId: string): Promise<IntentMemory | null> {
     try {
       const { data, error } = await supabase
@@ -228,9 +210,7 @@ export class IntentMemoryService {
     }
   }
 
-  /**
-   * Update or create user intent
-   */
+  
   static async updateIntent(
     userId: string,
     goal: string,
@@ -239,11 +219,11 @@ export class IntentMemoryService {
     outputStyle?: string
   ): Promise<void> {
     try {
-      // Check if there's an active intent
+      
       const current = await this.getCurrentIntent(userId);
 
       if (current && current.current_goal === goal) {
-        // Update existing intent
+        
         const { error } = await supabase
           .from('intent_memory')
           .update({
@@ -260,7 +240,7 @@ export class IntentMemoryService {
           console.error('❌ Intent update error:', error);
         }
       } else {
-        // Create new intent
+        
         const { error } = await supabase
           .from('intent_memory')
           .insert({
@@ -284,9 +264,7 @@ export class IntentMemoryService {
     }
   }
 
-  /**
-   * Mark intent as completed
-   */
+  
   static async completeIntent(userId: string, goal: string): Promise<void> {
     try {
       const { error } = await supabase
@@ -308,14 +286,10 @@ export class IntentMemoryService {
   }
 }
 
-// ============================================================================
-// 3. USER MEMORY OPERATIONS
-// ============================================================================
+
 
 export class UserMemoryService {
-  /**
-   * Get user's long-term memory
-   */
+  
   static async getUserMemory(userId: string): Promise<UserMemory | null> {
     try {
       const { data, error } = await supabase
@@ -336,9 +310,7 @@ export class UserMemoryService {
     }
   }
 
-  /**
-   * Initialize or update user memory
-   */
+  
   static async updateUserMemory(
     userId: string,
     updates: Partial<UserMemory>
@@ -370,9 +342,7 @@ export class UserMemoryService {
     }
   }
 
-  /**
-   * Record tool usage pattern
-   */
+ 
   static async recordToolUsage(userId: string, tools: string[]): Promise<void> {
     try {
       const memory = await this.getUserMemory(userId);
@@ -380,7 +350,7 @@ export class UserMemoryService {
       if (memory) {
         const preferredTools = memory.patterns.preferred_tools || [];
         
-        // Add tools and count frequency
+        
         tools.forEach(tool => {
           if (!preferredTools.includes(tool)) {
             preferredTools.push(tool);
@@ -400,15 +370,10 @@ export class UserMemoryService {
   }
 }
 
-// ============================================================================
-// 4. CONTEXT ASSEMBLY (THE KEY FUNCTION)
-// ============================================================================
+
 
 export class ContextService {
-  /**
-   * Assemble complete context pack for AI
-   * This is what makes follow-ups work!
-   */
+  
   static async getContextPack(
     userId: string,
     sessionId: string
@@ -435,14 +400,11 @@ export class ContextService {
     }
   }
 
-  /**
-   * Build AI system prompt with context
-   * This makes AI "remember" without raw chat logs
-   */
+  
   static buildContextualPrompt(context: ContextPack): string {
     const parts: string[] = [];
 
-    // Recent conversation context
+    
     if (context.session && context.session.turns.length > 0) {
       const recentTurns = context.session.turns
         .slice(-3)
@@ -452,7 +414,7 @@ export class ContextService {
       parts.push(`RECENT CONVERSATION:\n${recentTurns}`);
     }
 
-    // Current intent
+   
     if (context.intent) {
       parts.push(
         `CURRENT USER GOAL: ${context.intent.current_goal}`,
@@ -465,7 +427,7 @@ export class ContextService {
       }
     }
 
-    // User preferences
+  
     if (context.user) {
       const prefs = context.user.preferences;
       parts.push(
@@ -476,7 +438,7 @@ export class ContextService {
       );
     }
 
-    // Unresolved references
+  
     if (context.session && context.session.unresolved_references.length > 0) {
       parts.push(
         `UNRESOLVED REFERENCES: ${context.session.unresolved_references.join(', ')}`
@@ -486,17 +448,13 @@ export class ContextService {
     return parts.join('\n\n');
   }
 
-  /**
-   * Extract intent from AI response
-   * This improves over time automatically
-   */
+  
   static extractIntent(userMessage: string, aiResponse: string): {
     goal: string;
     confidence: number;
     entities: string[];
   } {
-    // Simple heuristic-based intent extraction
-    // In production, you might use a separate small model
+    
     
     let goal = 'general_query';
     let confidence = 0.5;
@@ -504,31 +462,31 @@ export class ContextService {
 
     const lowerMessage = userMessage.toLowerCase();
 
-    // Question patterns
+    
     if (lowerMessage.match(/what|how|why|when|where|who/)) {
       goal = 'seeking_information';
       confidence = 0.8;
     }
 
-    // Action patterns
+    
     if (lowerMessage.match(/calculate|compute|find|search|tell me/)) {
       goal = 'perform_action';
       confidence = 0.9;
     }
 
-    // Follow-up patterns
+    
     if (lowerMessage.match(/that|this|it|they|them|those/)) {
       goal = 'follow_up_question';
       confidence = 0.95;
     }
 
-    // Weather check
+    
     if (lowerMessage.match(/weather|temperature|forecast/)) {
       goal = 'check_weather';
       confidence = 0.95;
     }
 
-    // Extract potential entities (simple version)
+    
     const words = userMessage.split(' ');
     const capitalizedWords = words.filter(w => w[0] === w[0].toUpperCase() && w.length > 2);
     entities.push(...capitalizedWords);

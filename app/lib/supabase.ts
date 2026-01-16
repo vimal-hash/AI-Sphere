@@ -7,66 +7,191 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// ============================================================================
-// CUSTOM SUPABASE CLIENT WITH AGGRESSIVE REALTIME SETTINGS
-// This prevents disconnection on tab visibility changes
-// ============================================================================
+
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    flowType: 'pkce',
   },
   realtime: {
     params: {
       eventsPerSecond: 10,
     },
-    // CRITICAL: These settings prevent disconnection
-    heartbeatIntervalMs: 15000, // Send heartbeat every 15s
-    timeout: 60000, // 60s timeout (very generous)
+    
+    heartbeatIntervalMs: 10000, 
+    timeout: 120000, 
   },
   global: {
     headers: {
-      'x-client-info': 'voice-ai-app',
+      'x-client-info': 'voice-ai-persistent',
     },
   },
 });
 
-// ============================================================================
-// AGGRESSIVE CONNECTION KEEPER
-// Prevents Supabase from auto-disconnecting on tab hide
-// ============================================================================
+
 
 if (typeof window !== 'undefined') {
-  // Override Supabase's internal visibility handler
-  const originalAddEventListener = document.addEventListener;
+ 
+  const originalAddEventListener = document.addEventListener.bind(document);
   
-  // @ts-ignore - Monkey patch to prevent Supabase from listening to visibility
   document.addEventListener = function(type: string, listener: any, options?: any) {
-    // Block Supabase's visibility change listener
+    
     if (type === 'visibilitychange') {
-      // Check if this is Supabase's internal listener
-      const listenerStr = listener?.toString() || '';
-      if (listenerStr.includes('hidden') || listenerStr.includes('visibility')) {
-        console.log('🚫 Blocked Supabase visibility listener');
-        return; // Don't add the listener
+      const listenerString = listener?.toString() || '';
+      
+     
+      if (
+        listenerString.includes('hidden') || 
+        listenerString.includes('disconnect') ||
+        listenerString.includes('realtime')
+      ) {
+        
+        return; 
       }
     }
     
-    // Allow all other event listeners
-    return originalAddEventListener.call(this, type, listener, options);
+    
+    return originalAddEventListener(type, listener, options);
   };
+
+
+  let realHiddenState = document.hidden;
+  
+  Object.defineProperty(document, 'hidden', {
+    configurable: true,
+    get: function() {
+     
+      const actualHidden = realHiddenState;
+      
+      
+      const stack = new Error().stack || '';
+      const isSupabaseCall = stack.includes('supabase') || 
+                             stack.includes('realtime') ||
+                             stack.includes('phoenix');
+      
+      if (isSupabaseCall) {
+        
+        return false;
+      }
+      
+     
+      return actualHidden;
+    }
+  });
+
+  
+  document.addEventListener('visibilitychange', () => {
+    realHiddenState = document.visibilityState === 'hidden';
+    
+  });
+
+
+  const maintainConnection = () => {
+    try {
+     
+      const channels = (supabase as any).realtime?.channels || [];
+      
+      channels.forEach((channel: any) => {
+        
+        if (channel.state === 'closed' || channel.state === 'errored') {
+         
+          channel.rejoin();
+        }
+      });
+    } catch (error) {
+      
+    }
+  };
+
+  
+  setInterval(maintainConnection, 15000);
+
+
+  const preventUnloadDisconnect = () => {
+    
+    return;
+  };
+
+  window.addEventListener('beforeunload', preventUnloadDisconnect);
+
+
+  const keepWebSocketAlive = () => {
+    try {
+      const realtime = (supabase as any).realtime;
+      
+      if (realtime?.conn?.socket) {
+        
+        realtime.conn.socket.send(JSON.stringify({
+          event: 'heartbeat',
+          topic: 'phoenix',
+          payload: {},
+          ref: Date.now()
+        }));
+      }
+    } catch (error) {
+  
+    }
+  };
+
+
+  setInterval(keepWebSocketAlive, 20000);
+
+
 }
 
-// Helper to get current user
+
+
+
 export const getCurrentUser = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   return user;
 };
 
-// Helper to get session
+
 export const getSession = async () => {
   const { data: { session } } = await supabase.auth.getSession();
   return session;
+};
+
+
+export const forceReconnect = () => {
+  
+  
+  try {
+    const realtime = (supabase as any).realtime;
+    
+    if (realtime) {
+      
+      realtime.disconnect();
+      
+      setTimeout(() => {
+        realtime.connect();
+       
+      }, 1000);
+    }
+  } catch (error) {
+    console.error('❌ Force reconnect failed:', error);
+  }
+};
+
+// Check connection status
+export const checkConnectionStatus = () => {
+  try {
+    const realtime = (supabase as any).realtime;
+    
+    if (!realtime) return 'no realtime';
+    
+    const connectionState = realtime.connectionState?.();
+    const channels = realtime.channels || [];
+    
+   
+    
+    return connectionState;
+  } catch (error) {
+    console.error('❌ Status check failed:', error);
+    return 'error';
+  }
 };

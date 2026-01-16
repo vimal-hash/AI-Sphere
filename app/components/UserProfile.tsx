@@ -33,16 +33,16 @@ export default function UserProfile() {
         </div>
       </button>
 
-      {/* Dropdown Menu */}
+     
       {showMenu && (
         <>
-          {/* Backdrop */}
+         
           <div 
             className="fixed inset-0 z-40"
             onClick={() => setShowMenu(false)}
           />
           
-          {/* Menu */}
+        
           <div className="absolute top-16 left-0 bg-white/95 backdrop-blur-md rounded-lg shadow-2xl p-2 w-64 z-50">
             <div className="px-4 py-3 border-b border-gray-200">
               <p className="text-sm font-semibold text-gray-900">

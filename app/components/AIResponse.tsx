@@ -3,9 +3,7 @@
 import { useAIStore } from '@/app/store/useAIStore';
 import { useEffect, useState } from 'react';
 
-// ============================================================================
-// ENHANCED AI RESPONSE WITH TOOL INDICATORS
-// ============================================================================
+
 
 export default function AIResponse() {
   const { 
@@ -25,7 +23,7 @@ export default function AIResponse() {
   const [showMetrics, setShowMetrics] = useState(false);
   const [usedTools, setUsedTools] = useState<string[]>([]);
 
-  // Auto-hide response after delay
+
   useEffect(() => {
     if (status === 'responding' && !isPlaying) {
       const timer = setTimeout(() => {
@@ -87,28 +85,26 @@ export default function AIResponse() {
     <div className="fixed bottom-[3%] left-1/2 translate-x-[26%] z-40 max-w-3xl w-full px-6">
       <div className="space-y-4">
         
-        {/* ================================================================== */}
-        {/* CURRENT AI RESPONSE */}
-        {/* ================================================================== */}
+       
         
         {currentResponse && (
           <div 
             className={`bg-gradient-to-r ${getEmotionColor(currentResponse.emotion)} backdrop-blur-xl rounded-2xl p-6 shadow-2xl border animate-in fade-in slide-in-from-bottom-4 duration-500`}
           >
             <div className="flex items-start space-x-4">
-              {/* Emotion Icon */}
+              
               <div className={`text-5xl ${getStatusAnimation()}`}>
                 {getEmotionEmoji(currentResponse.emotion)}
               </div>
 
-              {/* Response Content */}
+             
               <div className="flex-1 space-y-3">
-                {/* Message */}
+                
                 <p className="text-white text-lg leading-relaxed font-medium">
                   {currentResponse.message}
                 </p>
 
-                {/* Tool Usage Indicators */}
+                
                 {(currentResponse as any).usedTools && (currentResponse as any).usedTools.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {(currentResponse as any).usedTools.map((tool: string, idx: number) => (
@@ -123,7 +119,7 @@ export default function AIResponse() {
                   </div>
                 )}
 
-                {/* Metadata Row */}
+               
                 <div className="flex items-center justify-between text-xs text-white/60">
                   <div className="flex items-center space-x-4">
                     {currentResponse.intent && (
@@ -144,7 +140,7 @@ export default function AIResponse() {
                     )}
                   </div>
 
-                  {/* Audio Controls */}
+                
                   <div className="flex items-center space-x-2">
                     {currentAudioUrl && (
                       <>
@@ -174,7 +170,7 @@ export default function AIResponse() {
                   </div>
                 </div>
 
-                {/* Metrics Toggle */}
+                
                 {metrics && (
                   <button
                     onClick={() => setShowMetrics(!showMetrics)}
@@ -184,7 +180,7 @@ export default function AIResponse() {
                   </button>
                 )}
 
-                {/* Metrics Display */}
+               
                 {showMetrics && metrics && (
                   <div className="grid grid-cols-2 gap-3 p-4 bg-black/30 rounded-lg">
                     <div>
@@ -206,9 +202,7 @@ export default function AIResponse() {
           </div>
         )}
 
-        {/* ================================================================== */}
-        {/* MESSAGE HISTORY */}
-        {/* ================================================================== */}
+        
         
         {messages.length > 0 && (
           <div className="text-center">
@@ -221,7 +215,7 @@ export default function AIResponse() {
             
             {showMessages && (
               <div className="mt-4 bg-black/80 backdrop-blur-xl rounded-2xl p-6 max-h-96 overflow-y-auto space-y-3 border border-white/10 shadow-2xl">
-                {/* Auto-play Toggle */}
+               
                 <div className="flex items-center justify-between pb-3 border-b border-white/10">
                   <span className="text-sm text-white/80">Auto-play responses</span>
                   <button
@@ -236,7 +230,7 @@ export default function AIResponse() {
                   </button>
                 </div>
 
-                {/* Messages */}
+               
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
@@ -259,7 +253,7 @@ export default function AIResponse() {
                         </p>
                       </div>
 
-                      {/* Audio Playback for Assistant Messages */}
+                     
                       {msg.role === 'assistant' && msg.audioUrl && (
                         <button
                           onClick={() => playAudio(msg.audioUrl!)}
@@ -279,9 +273,7 @@ export default function AIResponse() {
           </div>
         )}
 
-        {/* ================================================================== */}
-        {/* STATUS INDICATOR */}
-        {/* ================================================================== */}
+      
         
         {status !== 'idle' && status !== 'responding' && (
           <div className="flex justify-center">

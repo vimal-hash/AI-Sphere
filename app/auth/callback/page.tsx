@@ -16,7 +16,7 @@ export default function AuthCallback() {
         if (error) throw error;
         
         if (session) {
-          console.log('✅ Auth successful:', session.user.email);
+      
           router.push('/');
         } else {
           router.push('/login');

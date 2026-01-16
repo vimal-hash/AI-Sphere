@@ -8,7 +8,7 @@ interface AuthState {
   loading: boolean;
   initialized: boolean;
   
-  // Actions
+
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   initialize: () => Promise<void>;
@@ -24,7 +24,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initialize: async () => {
     try {
-      // Get initial session
+    
       const { data: { session } } = await supabase.auth.getSession();
       
       set({ 
@@ -34,9 +34,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         initialized: true,
       });
 
-      // Listen for auth changes
+ 
       supabase.auth.onAuthStateChange((_event, session) => {
-        console.log('🔐 Auth state changed:', _event, session?.user?.email);
+       ;
         set({
           session,
           user: session?.user ?? null,
@@ -85,9 +85,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         loading: false,
       });
       
-      console.log('👋 Signed out successfully');
+      
     } catch (error) {
-      console.error('❌ Sign out error:', error);
+     
       set({ loading: false });
     }
   },

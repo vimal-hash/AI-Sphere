@@ -17,21 +17,21 @@ export default function Home() {
   const { user, loading: authLoading, initialized, initialize } = useAuthStore();
   const { connect, disconnect } = usePresenceStore();
 
-  // Initialize auth on mount
+
   useEffect(() => {
     if (!initialized) {
       initialize();
     }
   }, [initialized, initialize]);
 
-  // Redirect to login if not authenticated
+ 
   useEffect(() => {
     if (initialized && !authLoading && !user) {
       router.push('/login');
     }
   }, [user, authLoading, initialized, router]);
 
-  // Connect to presence when authenticated
+ 
   useEffect(() => {
     if (user) {
       connect();
@@ -41,7 +41,7 @@ export default function Home() {
     }
   }, [user, connect, disconnect]);
 
-  // Show loading while checking auth
+
   if (!initialized || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
@@ -53,7 +53,7 @@ export default function Home() {
     );
   }
 
-  // Don't render main app if not authenticated
+  
   if (!user) {
     return null;
   }

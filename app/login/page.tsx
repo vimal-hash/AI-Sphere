@@ -9,7 +9,7 @@ export default function LoginPage() {
   const { user, loading, signInWithGoogle } = useAuthStore();
 
   useEffect(() => {
-    // If already logged in, redirect to home
+   
     if (user && !loading) {
       router.push('/');
     }
@@ -22,7 +22,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
       <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl max-w-md w-full mx-4">
-        {/* Logo/Title */}
+        
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,7 +33,7 @@ export default function LoginPage() {
           <p className="text-white/80">Real-time voice interaction</p>
         </div>
 
-        {/* Sign In Button */}
+        
         <button
           onClick={handleGoogleSignIn}
           disabled={loading}
@@ -54,7 +54,7 @@ export default function LoginPage() {
           )}
         </button>
 
-        {/* Info Text */}
+        
         <p className="text-white/60 text-sm text-center mt-6">
           By signing in, you agree to our Terms of Service and Privacy Policy
         </p>

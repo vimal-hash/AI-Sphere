@@ -3,10 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 
-// ============================================================================
-// ADVANCED AI WITH DATABASE MEMORY - FIXED
-// No more constraint errors! Check-then-update pattern.
-// ============================================================================
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -18,10 +14,6 @@ const supabase = createClient(
   // process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-// ============================================================================
-// DATABASE MEMORY FUNCTIONS - FIXED
-// ============================================================================
 
 interface ConversationTurn {
   role: 'user' | 'assistant';
@@ -41,11 +33,11 @@ async function getSessionMemory(sessionId: string, userId: string): Promise<Conv
       .single();
 
     if (error || !data) {
-      console.log('📭 No previous memory found');
+    
       return [];
     }
 
-    console.log('💾 Loaded from database:', data.turns.length, 'turns');
+   
     return data.turns.slice(-10); // Last 10 turns
   } catch (error) {
     console.error('❌ Memory fetch error:', error);
@@ -63,16 +55,16 @@ async function saveSessionTurn(
     const allTurns = [...existingTurns, turn];
     const recentTurns = allTurns.slice(-10); // Keep last 10
 
-    // ✅ FIX: Check if record exists first
+   
     const { data: existing } = await supabase
       .from('session_memory')
       .select('*')
       .eq('user_id', userId)
       .eq('session_id', sessionId)
-      .maybeSingle(); // Use maybeSingle to avoid errors when not found
+      .maybeSingle(); 
 
     if (existing) {
-      // Update existing record
+      
       const { error } = await supabase
         .from('session_memory')
         .update({
@@ -88,10 +80,10 @@ async function saveSessionTurn(
       if (error) {
         console.error('❌ Update error:', error);
       } else {
-        console.log('✅ Updated in database');
+       
       }
     } else {
-      // Insert new record
+    
       const { error } = await supabase
         .from('session_memory')
         .insert({
@@ -107,7 +99,7 @@ async function saveSessionTurn(
       if (error) {
         console.error('❌ Insert error:', error);
       } else {
-        console.log('✅ Inserted to database');
+     
       }
     }
   } catch (error) {
@@ -117,7 +109,7 @@ async function saveSessionTurn(
 
 async function saveIntentMemory(userId: string, goal: string, confidence: number) {
   try {
-    // Check if user already has an active intent
+    
     const { data: existing } = await supabase
       .from('intent_memory')
       .select('*')
@@ -126,7 +118,7 @@ async function saveIntentMemory(userId: string, goal: string, confidence: number
       .maybeSingle();
 
     if (existing && existing.current_goal === goal) {
-      // Update existing
+      
       await supabase
         .from('intent_memory')
         .update({
@@ -137,7 +129,7 @@ async function saveIntentMemory(userId: string, goal: string, confidence: number
         .eq('current_goal', goal)
         .eq('goal_status', 'active');
     } else {
-      // Create new
+     
       await supabase
         .from('intent_memory')
         .insert({
@@ -153,7 +145,7 @@ async function saveIntentMemory(userId: string, goal: string, confidence: number
         });
     }
 
-    console.log('✅ Intent saved:', goal);
+   
   } catch (error) {
     console.error('❌ Intent save error:', error);
   }
@@ -168,7 +160,7 @@ async function updateUserMemory(userId: string) {
       .maybeSingle();
 
     if (existing) {
-      // Update stats
+   
       await supabase
         .from('user_memory')
         .update({
@@ -178,7 +170,7 @@ async function updateUserMemory(userId: string) {
         })
         .eq('user_id', userId);
     } else {
-      // Create new user memory
+      
       await supabase
         .from('user_memory')
         .insert({
@@ -205,15 +197,13 @@ async function updateUserMemory(userId: string) {
         });
     }
 
-    console.log('✅ User stats updated');
+   
   } catch (error) {
     console.error('❌ User memory error:', error);
   }
 }
 
-// ============================================================================
-// BUILD CONTEXT
-// ============================================================================
+
 
 function buildContextPrompt(history: ConversationTurn[]): string {
   if (history.length === 0) return '';
@@ -229,9 +219,7 @@ ${contextLines.join('\n')}
 `;
 }
 
-// ============================================================================
-// TOOLS
-// ============================================================================
+
 
 const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
@@ -322,17 +310,15 @@ async function executeFunctionCall(functionName: string, functionArgs: any): Pro
   }
 }
 
-// ============================================================================
-// MAIN API HANDLER
-// ============================================================================
+
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    console.log('\n===== DATABASE MEMORY AI =====');
+    
 
-    // Auth
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -347,7 +333,7 @@ export async function POST(request: NextRequest) {
 
     const userId = user.id;
 
-    // Get audio and session
+    
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File;
     const sessionId = (formData.get('sessionId') as string) || `session_${Date.now()}`;
@@ -356,13 +342,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No audio' }, { status: 400 });
     }
 
-    console.log('📁 Audio:', audioFile.size, 'bytes | Session:', sessionId);
-    console.log('👤 User:', userId);
 
-    // Load from database
+
+    
     const conversationHistory = await getSessionMemory(sessionId, userId);
 
-    // Transcribe
+    
     const buffer = await audioFile.arrayBuffer();
     const blob = new Blob([buffer], { type: 'audio/webm' });
     const file = new File([blob], 'audio.webm', { type: 'audio/webm' });
@@ -372,7 +357,7 @@ export async function POST(request: NextRequest) {
       model: 'whisper-1',
     });
 
-    console.log('✅ Transcription:', transcription.text);
+   
 
     if (!transcription.text || transcription.text.trim() === '') {
       return NextResponse.json({
@@ -390,10 +375,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build context
+    
     const contextPrompt = buildContextPrompt(conversationHistory);
 
-    // Generate AI response
+    
     const usedTools: string[] = [];
     
     const messages: Array<OpenAI.Chat.Completions.ChatCompletionMessageParam> = [
@@ -439,7 +424,7 @@ Respond in JSON: {"intent":"respond","message":"your response","emotion":"calm"}
     let totalTokens = 0;
     let finalResponse: any = null;
 
-    // First AI call
+    
     const firstCompletion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages,
@@ -452,9 +437,9 @@ Respond in JSON: {"intent":"respond","message":"your response","emotion":"calm"}
     totalTokens += firstCompletion.usage?.total_tokens || 0;
     const firstMessage = firstCompletion.choices[0].message;
 
-    // Handle tool calls
+    
     if (firstMessage.tool_calls && firstMessage.tool_calls.length > 0) {
-      console.log('🛠️ Tools:', firstMessage.tool_calls.map((t: any) => t.function.name).join(', '));
+     
 
 
       messages.push(firstMessage);
@@ -509,14 +494,14 @@ Respond in JSON: {"intent":"respond","message":"your response","emotion":"calm"}
       }
     }
 
-    // Save user turn to database
+    
     await saveSessionTurn(sessionId, userId, {
       role: 'user',
       content: transcription.text,
       timestamp: new Date().toISOString(),
     }, conversationHistory);
 
-    // Save assistant turn to database
+    
     await saveSessionTurn(sessionId, userId, {
       role: 'assistant',
       content: finalResponse.message,
@@ -528,13 +513,13 @@ Respond in JSON: {"intent":"respond","message":"your response","emotion":"calm"}
       timestamp: new Date().toISOString(),
     }]);
 
-    // Save intent
+  
     await saveIntentMemory(userId, 'general_query', 0.7);
 
-    // Update user stats
+    
     await updateUserMemory(userId);
 
-    // Generate TTS
+    
     let audioUrl = '';
     try {
       const mp3 = await openai.audio.speech.create({
@@ -551,7 +536,7 @@ Respond in JSON: {"intent":"respond","message":"your response","emotion":"calm"}
     }
 
     const processingTime = Date.now() - startTime;
-    console.log(`✅ ===== Completed in ${processingTime}ms =====\n`);
+   
 
     return NextResponse.json({
       transcription: transcription.text,
@@ -582,7 +567,7 @@ Respond in JSON: {"intent":"respond","message":"your response","emotion":"calm"}
 }
 
 export async function GET() {
-  // Check database status
+
   const { count } = await supabase
     .from('session_memory')
     .select('*', { count: 'exact', head: true });
