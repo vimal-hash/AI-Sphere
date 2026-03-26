@@ -1,7 +1,7 @@
 "use client";
 
 import * as THREE from "three";
-import React, { useRef, useMemo } from "react";
+import React, { useRef, useMemo, useEffect } from "react";
 import { useFrame, ThreeElements } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { useAIStore } from "@/app/store/useAIStore";
@@ -51,16 +51,18 @@ function ParticleShell({ volume = 0, count = 2000, theme = "light" }: { volume?:
     return { basePositions, normals, speeds, phases };
   }, [count]);
 
-  const livePositions = useMemo(() => {
-    const arr = new Float32Array(count * 3);
-    arr.set(basePositions);
-    return arr;
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const posArray = new Float32Array(count * 3);
+    posArray.set(basePositions);
+    geo.setAttribute("position", new THREE.BufferAttribute(posArray, 3));
+    return geo;
   }, [basePositions, count]);
 
   useFrame((state) => {
     if (!ref.current) return;
     const t = state.clock.elapsedTime;
-    const posAttr = ref.current.geometry.attributes.position;
+    const posAttr = ref.current.geometry.attributes.position as THREE.BufferAttribute;
     let displaceMag = 0.02, displaceSpd = 0.8, turbulence = 0, waveAmp = 0.03;
 
     if (status === "listening") {
@@ -90,10 +92,7 @@ function ParticleShell({ volume = 0, count = 2000, theme = "light" }: { volume?:
   const particleColor = theme === "dark" ? "#ffffff" : "#1A1714";
 
   return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={livePositions} itemSize={3} />
-      </bufferGeometry>
+    <points ref={ref} geometry={geometry}>
       <pointsMaterial size={0.02} color={particleColor} transparent opacity={0.8} sizeAttenuation depthWrite={false} />
     </points>
   );
@@ -123,12 +122,18 @@ function OuterWisps({ volume = 0, count = 400, theme = "light" }: { volume?: num
     return { positions, velocities, phases };
   }, [count]);
 
-  const livePositions = useMemo(() => new Float32Array(positions), [positions]);
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const posArray = new Float32Array(count * 3);
+    posArray.set(positions);
+    geo.setAttribute("position", new THREE.BufferAttribute(posArray, 3));
+    return geo;
+  }, [positions, count]);
 
   useFrame((state) => {
     if (!ref.current) return;
     const t = state.clock.elapsedTime;
-    const posAttr = ref.current.geometry.attributes.position;
+    const posAttr = ref.current.geometry.attributes.position as THREE.BufferAttribute;
     let expansion = 0, chaos = 0;
     if (status === "processing") { expansion = Math.sin(t * 3) * 0.15; chaos = 0.1; }
     else if (status === "speaking" || status === "listening") { expansion = volume * 0.25; chaos = volume * 0.08; }
@@ -152,10 +157,7 @@ function OuterWisps({ volume = 0, count = 400, theme = "light" }: { volume?: num
   const particleColor = theme === "dark" ? "#ffffff" : "#1A1714";
 
   return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={livePositions} itemSize={3} />
-      </bufferGeometry>
+    <points ref={ref} geometry={geometry}>
       <pointsMaterial size={0.014} color={particleColor} transparent opacity={0.5} sizeAttenuation depthWrite={false} />
     </points>
   );
@@ -166,14 +168,17 @@ function OuterWisps({ volume = 0, count = 400, theme = "light" }: { volume?: num
    ═══════════════════════════════════════════ */
 function AmbientDust({ count = 150, theme = "light" }: { count?: number; theme?: string }) {
   const ref = useRef<THREE.Points>(null);
-  const positions = useMemo(() => {
-    const arr = new Float32Array(count * 3);
+
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 10;
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 7;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 5;
+      positions[i * 3] = (Math.random() - 0.5) * 10;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 7;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 5;
     }
-    return arr;
+    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    return geo;
   }, [count]);
 
   useFrame((state) => { if (ref.current) ref.current.rotation.y = state.clock.elapsedTime * 0.005; });
@@ -181,19 +186,14 @@ function AmbientDust({ count = 150, theme = "light" }: { count?: number; theme?:
   const particleColor = theme === "dark" ? "#ffffff" : "#1A1714";
 
   return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
-      </bufferGeometry>
+    <points ref={ref} geometry={geometry}>
       <pointsMaterial size={0.006} color={particleColor} transparent opacity={0.3} sizeAttenuation depthWrite={false} />
     </points>
   );
 }
 
 /* ═══════════════════════════════════════════
-   MAIN SPHERE — YOUR ORIGINAL RAW MATERIAL
-   meshStandardMaterial, roughness 0.7, metalness 0.8
-   Exactly as in your original Sphere.tsx
+   MAIN SPHERE — ORIGINAL MATERIAL
    ═══════════════════════════════════════════ */
 export function Model({ volume = 0, theme = "light", ...props }: ModelProps) {
   const { nodes } = useGLTF("/glb/sphere.glb") as any as GLTFResult;
