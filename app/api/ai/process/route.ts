@@ -384,7 +384,7 @@ export async function POST(request: NextRequest) {
     const messages: Array<OpenAI.Chat.Completions.ChatCompletionMessageParam> = [
       {
         role: 'system',
-        content: `You are Sphere, an advanced AI voice assistant with perfect memory stored in a database.
+        content: `You are Nova, an advanced AI voice assistant with perfect memory stored in a database.
 
 CURRENT DATE & TIME:
 ${new Date().toLocaleString('en-US', { 
@@ -524,7 +524,7 @@ Respond in JSON: {"intent":"respond","message":"your response","emotion":"calm"}
     try {
       const mp3 = await openai.audio.speech.create({
         model: 'tts-1-hd',
-        voice: 'Sphere',
+        voice: 'nova',
         input: finalResponse.message,
         speed: 1.0,
       });
